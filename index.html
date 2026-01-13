@@ -5,20 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>TERMINAL_WEATHER</title>
+    <title>TERMINAL_WEATHER_V2</title>
     <style>
-        /* --- 終端機風格設定 --- */
+        /* --- 終端機 V2 風格設定 --- */
         :root {
             --bg-color: #000000;       /* 純黑背景 */
-            --text-color: #00FF41;     /* 經典螢光綠 */
-            --dim-color: #008F11;      /* 暗綠色 */
-            --border-color: #00FF41;
+            
+            /* 指定配色：天氣(藍) / 地震(橘紅) */
+            --weather-color: #00E1FF;  /* 科技藍 (主要文字) */
+            --weather-dim: #006064;    /* 暗藍色 (框線/次要) */
+            
+            --quake-color: #FF4500;    /* 橘紅色 (地震警報) */
+            --quake-dim: #8B2500;      /* 暗橘紅 */
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: "Courier New", Courier, monospace; /* 等寬字體 */
+            color: var(--weather-color);
+            font-family: "Courier New", Courier, monospace;
             margin: 0;
             padding: 20px;
             font-size: 16px;
@@ -28,71 +32,115 @@
 
         /* 標題區 */
         header {
-            border-bottom: 2px dashed var(--text-color);
+            border-bottom: 2px dashed var(--weather-color);
             padding-bottom: 10px;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
         h1 {
             font-size: 1.4rem;
             margin: 0;
             text-transform: uppercase;
+            text-shadow: 0 0 8px var(--weather-dim); /* 藍色光暈 */
         }
 
-        .status {
-            font-size: 0.8rem;
-            color: var(--dim-color);
-            margin-top: 5px;
+        .sys-info {
+            font-size: 0.7rem;
+            color: var(--weather-dim);
+            text-align: right;
         }
 
-        /* 選單區 */
-        .control-group {
+        /* --- 地震警報區 (橘紅色風格) --- */
+        #quakeArea {
             margin-bottom: 25px;
+            display: none; /* 預設隱藏，抓到資料才顯示 */
+        }
+
+        .quake-card {
+            border: 2px solid var(--quake-color);
+            color: var(--quake-color);
+            padding: 15px;
+            position: relative;
+            background-color: rgba(50, 10, 0, 0.2); /* 微紅背景 */
+            box-shadow: 0 0 10px rgba(255, 69, 0, 0.2);
+        }
+
+        .quake-card::before {
+            content: "[ SEISMIC_ALERT ]";
+            position: absolute;
+            top: -12px;
+            left: 10px;
+            background-color: var(--bg-color);
+            padding: 0 5px;
+            font-weight: bold;
+            color: var(--quake-color);
+            font-size: 0.8rem;
+        }
+
+        .quake-main {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 8px 0;
+            text-shadow: 0 0 5px var(--quake-dim);
+        }
+
+        .quake-details {
+            font-size: 0.95rem;
+            border-left: 2px solid var(--quake-dim);
+            padding-left: 10px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        /* --- 天氣選單區 (藍色風格) --- */
+        .control-group {
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
             font-size: 0.9rem;
             margin-bottom: 5px;
-            color: var(--dim-color);
+            color: var(--weather-dim);
         }
 
         select {
-            background-color: #111;
-            color: var(--text-color);
-            border: 1px solid var(--text-color);
+            background-color: #051a24; /* 深藍底 */
+            color: var(--weather-color);
+            border: 1px solid var(--weather-color);
             padding: 12px;
             width: 100%;
             font-family: inherit;
             font-size: 1.1rem;
-            border-radius: 0; /* 直角 */
-            appearance: none; /* 移除原生樣式 */
+            border-radius: 0;
             outline: none;
         }
 
-        /* 顯示區 */
+        /* --- 天氣顯示區 --- */
         .forecast-card {
-            border: 1px solid #333;
+            border: 1px solid var(--weather-dim);
             padding: 15px;
             margin-bottom: 15px;
             position: relative;
         }
 
-        /* 裝飾性標籤 */
         .forecast-card::before {
-            content: "[ DATA_PACKET ]";
+            content: "[ METEO_DATA ]";
             position: absolute;
             top: -10px;
             left: 10px;
             background-color: var(--bg-color);
             padding: 0 5px;
             font-size: 0.7rem;
-            color: var(--dim-color);
+            color: var(--weather-dim);
         }
 
         .time-badge {
             display: inline-block;
-            background-color: var(--dim-color);
+            background-color: var(--weather-dim);
             color: #000;
             padding: 2px 6px;
             font-size: 0.9rem;
@@ -108,57 +156,71 @@
 
         .details {
             font-size: 1rem;
-            color: #ccc;
+            color: #B2EBF2; /* 淺藍色細節文字 */
             margin-top: 8px;
-            border-left: 2px solid var(--dim-color);
+            border-left: 2px solid var(--weather-dim);
             padding-left: 10px;
         }
 
-        .highlight { color: #fff; }
+        .highlight { color: #FFF; font-weight: bold; }
 
         footer {
             margin-top: 40px;
             font-size: 0.7rem;
-            color: var(--dim-color);
+            color: var(--weather-dim);
             text-align: center;
-            border-top: 1px solid #222;
+            border-top: 1px solid #1A4D66;
             padding-top: 15px;
         }
 
-        /* 載入動畫 */
+        /* 動畫效果 */
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
+        
+        .alert-blink { animation: rapid-blink 1.5s infinite; }
+        @keyframes rapid-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>> TW_WEATHER_V1</h1>
-        <div class="status">SYSTEM: ONLINE | LOC: TAIWAN</div>
+        <h1>> WEATHER_OS_V2</h1>
+        <div class="sys-info">
+            SYS: ACTIVE<br>
+            MODE: MONITOR
+        </div>
     </header>
 
+    <div id="quakeArea">
+        </div>
+
     <div class="control-group">
-        <label for="citySelect">SELECT TARGET:</label>
+        <label for="citySelect">TARGET SECTOR:</label>
         <select id="citySelect">
             <option value="" disabled selected>INITIALIZING...</option>
         </select>
     </div>
 
     <div id="displayArea">
-        <div class="blink">CONNECTING TO CWA SATELLITE...</div>
+        <div class="blink" style="color:var(--weather-dim)">CONNECTING TO CWA SATELLITE...</div>
     </div>
 
     <footer>
-        SOURCE: CWA OPEN DATA API<br>
-        UID: ...BEDC3575
+        DATA: CWA OPEN API | AUTH: SECURED<br>
+        V2.0 BLUE_THEME + QUAKE_ALERT
     </footer>
 
     <script>
         // --- 設定區 ---
         const API_KEY = 'CWA-30E05081-14C2-4DAE-831E-2796BEDC3575';
-        const API_URL = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${API_KEY}&format=JSON`;
+        
+        // 天氣預報 API (36小時)
+        const WEATHER_API = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${API_KEY}&format=JSON`;
+        
+        // 地震報告 API (顯著有感地震，只抓最新1筆)
+        const QUAKE_API = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0015-001?Authorization=${API_KEY}&limit=1&format=JSON`;
 
-        // 定義縣市顯示順序 (由北到南)
+        // 縣市排序
         const CITY_ORDER = [
             "基隆市", "臺北市", "新北市", "桃園市", "新竹市", "新竹縣", "苗栗縣", 
             "臺中市", "彰化縣", "南投縣", "雲林縣", "嘉義市", "嘉義縣", "臺南市", 
@@ -167,44 +229,87 @@
 
         const selectEl = document.getElementById('citySelect');
         const displayEl = document.getElementById('displayArea');
+        const quakeEl = document.getElementById('quakeArea');
         let weatherData = []; 
 
-        // --- 主程式 ---
+        // --- 主程式啟動 ---
         async function init() {
+            // 同時執行：抓天氣 & 抓地震
+            await Promise.all([fetchWeather(), fetchQuake()]);
+        }
+
+        // --- 1. 抓取地震資料 ---
+        async function fetchQuake() {
             try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
+                const res = await fetch(QUAKE_API);
+                const data = await res.json();
+                
+                // 確認是否有地震資料
+                if (data.success === "true" && data.records.Earthquake && data.records.Earthquake.length > 0) {
+                    const quake = data.records.Earthquake[0]; // 取得最新一筆
+                    renderQuake(quake);
+                }
+            } catch (err) {
+                console.error("Quake Data Error", err);
+                // 地震抓取失敗時不顯示任何東西，保持介面乾淨
+            }
+        }
+
+        // --- 2. 抓取天氣資料 ---
+        async function fetchWeather() {
+            try {
+                const res = await fetch(WEATHER_API);
+                const data = await res.json();
 
                 if (data.success === "true") {
                     weatherData = data.records.location;
                     populateMenu();
                     
-                    // 讀取上次選擇的縣市，若無則預設臺北市
+                    // 讀取使用者上次選擇的縣市
                     const savedLoc = localStorage.getItem('userLocation');
                     const defaultLoc = (savedLoc && weatherData.find(c => c.locationName === savedLoc)) 
                                      ? savedLoc : "臺北市";
                     
                     selectEl.value = defaultLoc;
                     renderWeather(defaultLoc);
-                } else {
-                    throw new Error("API Auth Failed");
                 }
             } catch (err) {
                 console.error(err);
-                // 判斷是否為檔案開啟限制 (CORS/File Protocol)
-                let msg = "NETWORK ERROR: 無法連線到氣象署";
-                if(window.location.protocol === 'file:') {
-                    msg = "BROWSER SECURITY: <br>瀏覽器限制直接開啟檔案連線 API。<br>請參考說明將檔案上傳至網路空間。";
-                }
-                displayEl.innerHTML = `<div style="color:var(--alert-color); border:1px solid red; padding:10px;">${msg}</div>`;
+                displayEl.innerHTML = `<div style="border:1px solid red; padding:10px; color:red;">CONNECTION FAILED</div>`;
             }
         }
 
-        // 建立選單 (依自訂順序)
+        // --- 顯示地震 (橘紅色) ---
+        function renderQuake(q) {
+            const info = q.EarthquakeInfo;
+            const time = new Date(info.OriginTime).toLocaleString('zh-TW', {
+                month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const mag = info.EarthquakeMagnitude.MagnitudeValue;
+            const depth = info.FocalDepth;
+            const loc = info.Epicenter.Location;
+
+            // 格式化 HTML
+            quakeEl.innerHTML = `
+                <div class="quake-card">
+                    <div style="font-size:0.8rem; margin-bottom:5px; display:flex; justify-content:space-between;">
+                        <span class="alert-blink">⚠️ LATEST REPORT</span>
+                        <span>${time}</span>
+                    </div>
+                    <div class="quake-main">規模 ${mag} | 深度 ${depth}km</div>
+                    <div class="quake-details">
+                        震央: ${loc}<br>
+                        資訊: ${q.ReportContent.substring(0, 40)}...
+                    </div>
+                </div>
+            `;
+            quakeEl.style.display = 'block'; // 有資料才顯示
+        }
+
+        // --- 建立選單 ---
         function populateMenu() {
             selectEl.innerHTML = '';
             CITY_ORDER.forEach(cityName => {
-                // 確保 API 裡真的有這個縣市資料
                 if(weatherData.find(c => c.locationName === cityName)) {
                     const opt = document.createElement('option');
                     opt.value = cityName;
@@ -214,28 +319,20 @@
             });
         }
 
-        // 顯示天氣核心邏輯
+        // --- 顯示天氣 (藍色) ---
         function renderWeather(locationName) {
-            // 儲存使用者選擇
             localStorage.setItem('userLocation', locationName);
-            
             const locData = weatherData.find(l => l.locationName === locationName);
             if (!locData) return;
 
-            // 整理資料方便讀取 (Wx=現象, PoP=降雨, MinT/MaxT=溫度, CI=舒適度)
             const elements = {};
-            locData.weatherElement.forEach(e => {
-                elements[e.elementName] = e.time;
-            });
+            locData.weatherElement.forEach(e => { elements[e.elementName] = e.time; });
 
             let html = '';
-
-            // 顯示未來 3 個時段
+            // 顯示 3 個時段
             for (let i = 0; i < 3; i++) {
                 const startTime = new Date(elements['Wx'][i].startTime);
                 const endTime = new Date(elements['Wx'][i].endTime);
-                
-                // 時間格式化
                 const timeStr = `${formatTime(startTime)} ~ ${formatTime(endTime)}`;
                 
                 const wx = elements['Wx'][i].parameter.parameterName;
@@ -250,15 +347,15 @@
                     <div class="weather-main">${wx}</div>
                     <div class="details">
                         氣溫: <span class="highlight">${minT}°C - ${maxT}°C</span><br>
-                        降雨: <span class="highlight">${pop}%</span><br>
-                        體感: ${ci}
+                        降雨機率: <span class="highlight">${pop}%</span><br>
+                        舒適度: ${ci}
                     </div>
                 </div>`;
             }
             displayEl.innerHTML = html;
         }
 
-        // 時間格式化工具
+        // 時間格式工具
         function formatTime(date) {
             const m = (date.getMonth() + 1).toString().padStart(2, '0');
             const d = date.getDate().toString().padStart(2, '0');
@@ -267,14 +364,11 @@
             return `${m}/${d} ${h}:${min}`;
         }
 
-        // 監聽選單變更
-        selectEl.addEventListener('change', (e) => {
-            renderWeather(e.target.value);
-        });
+        // 監聽選單
+        selectEl.addEventListener('change', (e) => renderWeather(e.target.value));
 
         // 啟動
         init();
-
     </script>
 </body>
 </html>
