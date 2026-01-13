@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>WEATHER_OS_LITE_FIXED</title>
+    <title>WEATHER_OS_LITE_FIXED_V2</title>
     <style>
         :root {
             --bg-color: #000000;
@@ -66,7 +66,7 @@
         .btn:active { background: #222; transform: translateY(2px); }
         .btn-on { border-color: #00FF00; color: #00FF00; background: rgba(0,20,0,0.3); }
 
-        /* --- [修正重點] 地震卡片樣式 --- */
+        /* --- 地震卡片樣式 --- */
         #quakeArea { 
             margin-bottom: 20px; display: none; cursor: pointer;
             transition: transform 0.1s;
@@ -75,21 +75,18 @@
             display: block; 
             border: 2px solid var(--quake-color); 
             color: var(--quake-color);
-            /* 修正1: 增加內距，確保文字不貼邊 */
             padding: 30px 20px 20px 20px; 
             position: relative;
             background: rgba(50, 10, 0, 0.2); 
             box-shadow: 0 0 8px rgba(255, 69, 0, 0.2);
             overflow: hidden; 
         }
-        /* 標籤位置微調 */
         .quake-card::before {
             content: "[ ⚠️ SEISMIC_ALERT ]";
-            position: absolute; top: -1px; left: -1px; /* 貼齊左上角 */
-            background: var(--quake-color); color: #000; /* 反白顯示更清楚 */
+            position: absolute; top: -1px; left: -1px; 
+            background: var(--quake-color); color: #000; 
             padding: 2px 8px; font-weight: bold; font-size: 0.75rem;
         }
-        /* 箭頭位置微調 */
         .quake-card::after { 
             content: "↗"; position: absolute; top: 10px; right: 10px; 
             font-size: 1.5rem; opacity: 0.5; pointer-events: none;
@@ -98,7 +95,7 @@
         .quake-top-row {
             display: flex; justify-content: space-between; font-size: 0.8rem;
             margin-bottom: 5px; 
-            padding-right: 30px; /* 修正2: 避開右上角箭頭 */
+            padding-right: 30px; 
         }
 
         .quake-main { font-size: 1.4rem; font-weight: bold; margin: 5px 0 10px 0; line-height: 1.2; }
@@ -107,7 +104,6 @@
             font-size: 0.95rem; opacity: 0.9; margin-top: 10px; padding-top: 10px;
             border-top: 1px dashed var(--quake-dim); 
             line-height: 1.5; 
-            /* 修正3: 強制斷行，防止超出邊框 */
             white-space: pre-wrap;
             word-break: break-word; 
             overflow-wrap: break-word;
@@ -145,8 +141,28 @@
         
         .weather-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px;}
         .wx-text { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; }
-        .temp-text { font-size: 1.2rem; color: #fff; }
-        .pop-text { font-size: 0.9rem; color: #00E1FF; }
+        
+        /* --- [修改部分開始] 統一文字樣式 --- */
+        /* 時間文字 (新增) */
+        .time-text { 
+            font-size: 1.2rem;   /* 與溫度相同 */
+            color: #fff;         /* 與溫度相同 */
+            margin-bottom: 5px; 
+        }
+        
+        /* 溫度文字 (維持原樣) */
+        .temp-text { 
+            font-size: 1.2rem; 
+            color: #fff; 
+        }
+        
+        /* 降雨機率文字 (修改) */
+        .pop-text { 
+            font-size: 1.2rem;   /* 與溫度相同 */
+            color: #fff;         /* 與溫度相同 */
+        }
+        /* --- [修改部分結束] --- */
+
         .ci-text { 
             font-size: 0.9rem; color: #B2EBF2; margin-top: 5px; 
             border-top: 1px dashed #006064; padding-top: 5px;
@@ -300,7 +316,7 @@
 
                 html += `
                 <div class="forecast-card" data-period="${(i+1)*12}H">
-                    <div style="font-size:0.8rem; color:var(--weather-dim); margin-bottom:5px;">${timeStr}</div>
+                    <div class="time-text">${timeStr}</div>
                     <div class="wx-text">${wx}</div>
                     <div class="weather-row">
                         <span class="temp-text">${minT}° - ${maxT}°C</span>
