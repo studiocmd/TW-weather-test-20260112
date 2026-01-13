@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>WEATHER_OS_V6</title>
+    <title>WEATHER_OS_V6_FIXED</title>
     <style>
         :root {
             --bg-color: #000000;
@@ -74,6 +74,8 @@
             display: block; border: 2px solid var(--quake-color); color: var(--quake-color);
             padding: 15px; position: relative;
             background: rgba(50, 10, 0, 0.2); box-shadow: 0 0 8px rgba(255, 69, 0, 0.2);
+            /* 修復：防止內容溢出 */
+            overflow: hidden;
         }
         .quake-card:active { transform: scale(0.98); background: rgba(80, 20, 0, 0.3); }
         .quake-card::before {
@@ -84,9 +86,14 @@
         }
         .quake-card::after { content: "↗"; position: absolute; top: 5px; right: 10px; font-size: 1.5rem; opacity: 0.5; }
         .quake-main { font-size: 1.3rem; font-weight: bold; margin: 8px 0; }
+        
+        /* 修復核心：加入 word-break 防止長字串撐開版面 */
         .quake-details {
             font-size: 0.95rem; opacity: 0.9; margin-top: 10px; padding-top: 10px;
-            border-top: 1px dashed var(--quake-dim); line-height: 1.6; white-space: pre-wrap;
+            border-top: 1px dashed var(--quake-dim); line-height: 1.6; 
+            white-space: pre-wrap;
+            word-break: break-word; 
+            overflow-wrap: break-word;
         }
         .alert-blink { animation: rapid-blink 1.5s infinite; }
         @keyframes rapid-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -131,7 +138,7 @@
         
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
-        .error-msg { color: #FF5555; border: 1px solid #FF5555; padding: 10px; font-size: 0.9rem; margin-top: 10px; }
+        .error-msg { color: #FF5555; border: 1px solid #FF5555; padding: 10px; font-size: 0.9rem; margin-top: 10px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -174,6 +181,7 @@
     </footer>
 
     <script>
+        // 注意：API KEY 需確保有效且未達請求上限
         const API_KEY = 'CWA-30E05081-14C2-4DAE-831E-2796BEDC3575';
         
         // ============================
@@ -186,7 +194,7 @@
         let isMonitorActive = false;
         let autoScanTimer = null;
         let currentCityData = null;
-        let loadedCities = {}; // 快取已下載的城市資料
+        let loadedCities = {}; 
         
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx;
@@ -226,16 +234,16 @@
                     citySelect.appendChild(opt);
                 });
 
-                // 2. 設定預設城市（不觸發 change 事件）
+                // 2. 設定預設城市
                 citySelect.value = DEFAULT_CITY;
 
-                // 3. 背景抓取地震資料（不阻塞主流程）
+                // 3. 背景抓取地震資料
                 fetchQuake(false); 
 
-                // 4. 只下載臺北市資料並顯示中山區
+                // 4. 下載預設城市資料
                 await loadCityData(DEFAULT_CITY, DEFAULT_DIST);
 
-                // 5. 綁定選單事件（手動切換時才觸發）
+                // 5. 綁定事件
                 citySelect.addEventListener('change', async (e) => {
                     await loadCityData(e.target.value);
                 });
@@ -249,46 +257,52 @@
             }
         }
 
-        // --- 動態載入：只在需要時下載該城市資料 ---
+        // --- 動態載入：加入更強的錯誤處理 ---
         async function loadCityData(cityName, targetDist = null) {
             const dataId = CITY_API_MAP[cityName];
             if(!dataId) return;
             
-            // 檢查快取：如果已經下載過，直接使用
             if (loadedCities[cityName]) {
-                console.log(`[CACHE HIT] 使用快取: ${cityName}`);
                 currentCityData = loadedCities[cityName];
                 populateDistricts(cityName, targetDist);
                 return;
             }
 
-            // 顯示載入狀態
             displayEl.innerHTML = `<div class="blink">DOWNLOADING [${cityName}]...</div>`;
             distSelect.innerHTML = `<option>LOADING...</option>`;
 
             try {
-                console.log(`[DOWNLOAD] 正在下載: ${cityName}`);
                 const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${dataId}?Authorization=${API_KEY}&format=JSON&elementName=Wx,T,PoP12h,AT`;
                 const res = await fetch(url);
-                if(!res.ok) throw new Error("Network Error");
+                if(!res.ok) throw new Error(`HTTP Error ${res.status}`);
+                
                 const data = await res.json();
                 
-                if (data.success === "true") {
+                // 修復：加入 Optional Chaining (?.) 避免結構錯誤導致崩潰
+                if (data.success === "true" && data.records?.locations?.[0]?.location) {
                     currentCityData = data.records.locations[0].location;
-                    loadedCities[cityName] = currentCityData; // 存入快取
-                    console.log(`[SUCCESS] ${cityName} 資料已快取`);
+                    loadedCities[cityName] = currentCityData;
                     populateDistricts(cityName, targetDist);
+                } else {
+                    throw new Error("API Structure Mismatch or Empty");
                 }
             } catch (err) {
                 console.error(err);
-                displayEl.innerHTML = `<div class="error-msg">DATA ERROR: 無法連線 ${cityName}</div>`;
+                // 顯示具體的錯誤原因以便除錯
+                displayEl.innerHTML = `<div class="error-msg">DATA ERROR: 無法讀取 ${cityName}<br><small>${err.message}</small></div>`;
+                distSelect.innerHTML = `<option>ERROR</option>`;
             }
         }
 
-        // --- 填入鄉鎮選單 ---
         function populateDistricts(cityName, targetDist) {
             distSelect.innerHTML = '';
             
+            // 確保資料存在再 map
+            if (!currentCityData || currentCityData.length === 0) {
+                distSelect.innerHTML = '<option>NO DATA</option>';
+                return;
+            }
+
             const districts = currentCityData.map(loc => loc.locationName);
             districts.forEach(d => {
                 const opt = document.createElement('option');
@@ -296,7 +310,6 @@
                 distSelect.appendChild(opt);
             });
 
-            // 智慧選取
             if (targetDist && districts.includes(targetDist)) {
                 distSelect.value = targetDist;
             } else {
@@ -306,8 +319,8 @@
             renderWeather(distSelect.value);
         }
 
-        // --- 顯示天氣 ---
         function renderWeather(distName) {
+            if (!currentCityData) return;
             const location = currentCityData.find(l => l.locationName === distName);
             if (!location) return;
 
@@ -315,7 +328,15 @@
             location.weatherElement.forEach(e => { elements[e.elementName] = e.time; });
 
             let html = `<div class="location-header">> ${citySelect.value} ${distName}</div>`;
-            const loopLimit = Math.min(3, elements['Wx'] ? elements['Wx'].length : 0);
+            
+            // 安全檢查 Wx 是否存在
+            const wxData = elements['Wx'] || [];
+            const loopLimit = Math.min(3, wxData.length);
+
+            if (loopLimit === 0) {
+                displayEl.innerHTML = `<div class="error-msg">目前無預報資料</div>`;
+                return;
+            }
 
             for(let i=0; i<loopLimit; i++) {
                 const wxTime = elements['Wx'][i];
@@ -324,9 +345,10 @@
                 const h = startTime.getHours().toString().padStart(2,'0');
                 const m = startTime.getMinutes().toString().padStart(2,'0');
                 
-                const wx = elements['Wx'][i].elementValue[0].value;
-                const temp = elements['T'][i].elementValue[0].value;
-                const feel = elements['AT'][i].elementValue[0].value;
+                // 使用 Optional Chaining 確保數值存在
+                const wx = elements['Wx']?.[i]?.elementValue?.[0]?.value || "-";
+                const temp = elements['T']?.[i]?.elementValue?.[0]?.value || "-";
+                const feel = elements['AT']?.[i]?.elementValue?.[0]?.value || "-";
                 
                 let pop = "0"; 
                 if (elements['PoP12h']) {
@@ -340,7 +362,7 @@
                 }
 
                 html += `
-                <div class="forecast-card" data-label="+${i*3}HR">
+                <div class="forecast-card" data-label="+${(i+1)*12}H">
                     <div class="time-badge">${d}日 ${h}:${m} 起</div>
                     <div class="weather-main">${wx}</div>
                     <div class="details">
